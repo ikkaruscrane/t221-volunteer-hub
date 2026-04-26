@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 
 export const supabase = createClient(
-  'https://xfrmdyjeoqsxkluoizxd.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhmcm1keWplb3FzeGtsdW9penhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwMzA5NTYsImV4cCI6MjA5MTYwNjk1Nn0.EE7wwIbSXrkKtcFVuR0jl_58XNkceah0bqmaFyfuYlA'
+  'https://hjzwiawtuwopunzluxbl.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhqendpYXd0dXdvcHVuemx1eGJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMzgxMDUsImV4cCI6MjA5MjgxNDEwNX0.quryx9iiJMb_hAHYY2ywUt2XEWQ7w_CWTVC0TuxhBgA'
 )
 
 export type TaskType = "Task" | "Service" | "Role"
