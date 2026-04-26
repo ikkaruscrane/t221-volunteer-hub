@@ -6,6 +6,7 @@ import { TaskCard } from "@/components/task-card"
 import { TaskTable } from "@/components/task-table"
 import { TaskFilterBar, type Filters } from "@/components/task-filter-bar"
 import { ClaimModal } from "@/components/claim-modal"
+import { CompleteModal } from "@/components/complete-modal"
 import { ClaimToast } from "@/components/claim-toast"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty"
@@ -39,7 +40,11 @@ export function TaskList() {
   // Claim modal state
   const [claimTask, setClaimTask] = useState<Task | null>(null)
   const [claimModalOpen, setClaimModalOpen] = useState(false)
-  
+
+  // Complete modal state
+  const [completeTask, setCompleteTask] = useState<Task | null>(null)
+  const [completeModalOpen, setCompleteModalOpen] = useState(false)
+
   // Toast state
   const [toastData, setToastData] = useState<{ name: string; taskTitle: string } | null>(null)
   const [toastVisible, setToastVisible] = useState(false)
@@ -83,6 +88,11 @@ export function TaskList() {
     setClaimModalOpen(true)
   }
 
+  const handleCompleteClick = (task: Task) => {
+    setCompleteTask(task)
+    setCompleteModalOpen(true)
+  }
+
   const handleClaimConfirm = async (taskId: string, name: string, claimNotes: string) => {
     if (usingSampleData) {
       // For sample data, just update local state
@@ -121,8 +131,38 @@ export function TaskList() {
     setClaimTask(null)
   }
 
-  // Apply filters
+  const handleCompleteConfirm = async (taskId: string, completedBy: string, completionNotes: string) => {
+    if (usingSampleData) {
+      setTasks(prev => prev.map(t =>
+        t.id === taskId
+          ? { ...t, completed_by: completedBy, completion_notes: completionNotes, status: "Complete" as const, completed_at: new Date().toISOString() }
+          : t
+      ))
+    } else {
+      const { error: updateError } = await supabase
+        .from("t221_volunteer_tasks")
+        .update({
+          completed_by: completedBy,
+          completion_notes: completionNotes,
+          status: "Complete",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", taskId)
+
+      if (updateError) {
+        throw new Error(updateError.message)
+      }
+
+      await fetchTasks()
+    }
+
+    setCompleteModalOpen(false)
+    setCompleteTask(null)
+  }
+
+  // Apply filters — exclude Complete tasks from the active list
   const filteredTasks = tasks.filter(task => {
+    if (task.status === "Complete") return false
     if (filters.type !== "all" && task.type !== filters.type) return false
     if (filters.ask !== "all" && task.ask !== filters.ask) return false
     if (filters.recipient !== "all" && task.recipient !== filters.recipient) return false
@@ -195,19 +235,21 @@ export function TaskList() {
           {/* Mobile: Card view */}
           <div className="grid gap-4 sm:grid-cols-2 lg:hidden">
             {filteredTasks.map(task => (
-              <TaskCard 
-                key={task.id} 
-                task={task} 
+              <TaskCard
+                key={task.id}
+                task={task}
                 onClaimClick={() => handleClaimClick(task)}
+                onCompleteClick={() => handleCompleteClick(task)}
               />
             ))}
           </div>
-          
+
           {/* Desktop: Table view */}
           <div className="hidden lg:block">
-            <TaskTable 
-              tasks={filteredTasks} 
+            <TaskTable
+              tasks={filteredTasks}
               onClaimClick={handleClaimClick}
+              onCompleteClick={handleCompleteClick}
             />
           </div>
         </>
@@ -219,6 +261,14 @@ export function TaskList() {
         open={claimModalOpen}
         onOpenChange={setClaimModalOpen}
         onConfirm={handleClaimConfirm}
+      />
+
+      {/* Complete modal */}
+      <CompleteModal
+        task={completeTask}
+        open={completeModalOpen}
+        onOpenChange={setCompleteModalOpen}
+        onConfirm={handleCompleteConfirm}
       />
 
       {/* Success toast */}

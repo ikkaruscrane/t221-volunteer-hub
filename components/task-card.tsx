@@ -9,6 +9,7 @@ import { CalendarDays, User, Clock, Users } from "lucide-react"
 interface TaskCardProps {
   task: Task
   onClaimClick?: () => void
+  onCompleteClick?: () => void
 }
 
 function formatDate(dateString: string | null): string {
@@ -48,12 +49,13 @@ const askBadgeStyles: Record<Task["ask"], string> = {
   "Weekend camping": "bg-rose-50 text-rose-700 border-rose-200",
 }
 
-export function TaskCard({ task, onClaimClick }: TaskCardProps) {
+export function TaskCard({ task, onClaimClick, onCompleteClick }: TaskCardProps) {
   const isClaimed = task.status === "Claimed"
   const isComplete = task.status === "Complete"
   const isCancelled = task.status === "Cancelled"
   const urgent = isUrgent(task.commitment_date, task.assigned_to) && task.status === "Open"
   const canClaim = task.status === "Open" && !task.assigned_to
+  const canComplete = task.status === "Open" || task.status === "Claimed"
 
   return (
     <Card className={`hover:shadow-md transition-shadow ${isClaimed ? "opacity-75" : ""}`}>
@@ -112,15 +114,27 @@ export function TaskCard({ task, onClaimClick }: TaskCardProps) {
           </div>
         </div>
 
-        {canClaim && onClaimClick && (
-          <Button
-            size="sm"
-            onClick={onClaimClick}
-            className="w-full min-h-[44px] bg-[#BF0000] hover:bg-[#A00000] text-white"
-          >
-            Claim This Task
-          </Button>
-        )}
+        <div className="flex flex-col gap-2">
+          {canClaim && onClaimClick && (
+            <Button
+              size="sm"
+              onClick={onClaimClick}
+              className="w-full min-h-[44px] bg-[#BF0000] hover:bg-[#A00000] text-white"
+            >
+              Claim This Task
+            </Button>
+          )}
+          {canComplete && onCompleteClick && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={onCompleteClick}
+              className="w-full min-h-[44px] border-green-600 text-green-700 hover:bg-green-50"
+            >
+              Mark Complete
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   )

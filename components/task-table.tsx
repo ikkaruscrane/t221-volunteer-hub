@@ -16,6 +16,7 @@ import { Clock } from "lucide-react"
 interface TaskTableProps {
   tasks: Task[]
   onClaimClick?: (task: Task) => void
+  onCompleteClick?: (task: Task) => void
 }
 
 function formatDate(dateString: string | null): string {
@@ -55,7 +56,7 @@ const askBadgeStyles: Record<Task["ask"], string> = {
   "Weekend camping": "bg-rose-50 text-rose-700 border-rose-200",
 }
 
-export function TaskTable({ tasks, onClaimClick }: TaskTableProps) {
+export function TaskTable({ tasks, onClaimClick, onCompleteClick }: TaskTableProps) {
   return (
     <div className="rounded-md border">
       <Table>
@@ -76,6 +77,7 @@ export function TaskTable({ tasks, onClaimClick }: TaskTableProps) {
             const isClaimed = task.status === "Claimed"
             const urgent = isUrgent(task.commitment_date, task.assigned_to) && task.status === "Open"
             const canClaim = task.status === "Open" && !task.assigned_to
+            const canComplete = task.status === "Open" || task.status === "Claimed"
             
             return (
               <TableRow key={task.id} className={isClaimed ? "opacity-75" : ""}>
@@ -125,15 +127,27 @@ export function TaskTable({ tasks, onClaimClick }: TaskTableProps) {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  {canClaim && onClaimClick ? (
-                    <Button
-                      size="sm"
-                      onClick={() => onClaimClick(task)}
-                      className="min-h-[44px] bg-[#BF0000] hover:bg-[#A00000] text-white"
-                    >
-                      Claim
-                    </Button>
-                  ) : null}
+                  <div className="flex items-center justify-end gap-2">
+                    {canClaim && onClaimClick && (
+                      <Button
+                        size="sm"
+                        onClick={() => onClaimClick(task)}
+                        className="min-h-[44px] bg-[#BF0000] hover:bg-[#A00000] text-white"
+                      >
+                        Claim
+                      </Button>
+                    )}
+                    {canComplete && onCompleteClick && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onCompleteClick(task)}
+                        className="min-h-[44px] border-green-600 text-green-700 hover:bg-green-50"
+                      >
+                        Complete
+                      </Button>
+                    )}
+                  </div>
                 </TableCell>
               </TableRow>
             )

@@ -2,13 +2,14 @@
 
 import { useState } from "react"
 import { TaskList } from "@/components/task-list"
+import { CompletedList } from "@/components/completed-list"
 import { LogRequestForm } from "@/components/log-request-form"
 import { TroopLogo } from "@/components/troop-logo"
 import { Button } from "@/components/ui/button"
 import { LogOut } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-type Tab = "tasks" | "log"
+type Tab = "tasks" | "completed" | "log"
 
 interface MainAppProps {
   onLogout: () => void
@@ -73,6 +74,20 @@ export function MainApp({ onLogout }: MainAppProps) {
             </button>
             <button
               role="tab"
+              aria-selected={activeTab === "completed"}
+              onClick={() => setActiveTab("completed")}
+              className={cn(
+                "flex-1 sm:flex-none px-4 sm:px-6 py-3 text-sm sm:text-base font-medium transition-colors min-h-[44px]",
+                "border-b-2 -mb-px",
+                activeTab === "completed"
+                  ? "border-[#BF0000] text-[#BF0000]"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-muted"
+              )}
+            >
+              Completed
+            </button>
+            <button
+              role="tab"
               aria-selected={activeTab === "log"}
               onClick={() => setActiveTab("log")}
               className={cn(
@@ -92,6 +107,8 @@ export function MainApp({ onLogout }: MainAppProps) {
       <main className="flex-1 container mx-auto px-4 py-6">
         {activeTab === "tasks" ? (
           <TaskList />
+        ) : activeTab === "completed" ? (
+          <CompletedList />
         ) : (
           <div className="max-w-2xl mx-auto">
             <div className="mb-6">
