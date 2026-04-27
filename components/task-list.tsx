@@ -1,13 +1,10 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
-import { supabase, sampleTasks, type Task } from "@/lib/supabase"
+import { useState } from "react"
+import { type Task } from "@/lib/supabase"
 import { TaskCard } from "@/components/task-card"
 import { TaskTable } from "@/components/task-table"
 import { TaskFilterBar, type Filters } from "@/components/task-filter-bar"
-import { ClaimModal } from "@/components/claim-modal"
-import { CompleteModal } from "@/components/complete-modal"
-import { ClaimToast } from "@/components/claim-toast"
 import { Button } from "@/components/ui/button"
 import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty"
 import { Spinner } from "@/components/ui/spinner"
@@ -30,139 +27,18 @@ const defaultFilters: Filters = {
   urgentOnly: false,
 }
 
-export function TaskList() {
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+interface TaskListProps {
+  tasks: Task[]
+  loading: boolean
+  usingSampleData: boolean
+  onRefresh: () => void
+  onDetailClick: (task: Task) => void
+}
+
+export function TaskList({ tasks, loading, usingSampleData, onRefresh, onDetailClick }: TaskListProps) {
   const [filters, setFilters] = useState<Filters>(defaultFilters)
-  const [usingSampleData, setUsingSampleData] = useState(false)
-  
-  // Claim modal state
-  const [claimTask, setClaimTask] = useState<Task | null>(null)
-  const [claimModalOpen, setClaimModalOpen] = useState(false)
 
-  // Complete modal state
-  const [completeTask, setCompleteTask] = useState<Task | null>(null)
-  const [completeModalOpen, setCompleteModalOpen] = useState(false)
-
-  // Toast state
-  const [toastData, setToastData] = useState<{ name: string; taskTitle: string } | null>(null)
-  const [toastVisible, setToastVisible] = useState(false)
-
-  const fetchTasks = useCallback(async () => {
-    setLoading(true)
-    setError(null)
-    setUsingSampleData(false)
-    
-    try {
-      const { data, error: fetchError } = await supabase
-        .from("t221_volunteer_tasks")
-        .select("*")
-        .order("commitment_date", { ascending: true })
-      
-      if (fetchError) {
-        console.log("[v0] Supabase error, using sample data:", fetchError.message)
-        setTasks(sampleTasks)
-        setUsingSampleData(true)
-      } else if (data && data.length > 0) {
-        setTasks(data as Task[])
-      } else {
-        setTasks(sampleTasks)
-        setUsingSampleData(true)
-      }
-    } catch (err) {
-      console.log("[v0] Fetch error, using sample data:", err)
-      setTasks(sampleTasks)
-      setUsingSampleData(true)
-    }
-    
-    setLoading(false)
-  }, [])
-
-  useEffect(() => {
-    fetchTasks()
-  }, [fetchTasks])
-
-  const handleClaimClick = (task: Task) => {
-    setClaimTask(task)
-    setClaimModalOpen(true)
-  }
-
-  const handleCompleteClick = (task: Task) => {
-    setCompleteTask(task)
-    setCompleteModalOpen(true)
-  }
-
-  const handleClaimConfirm = async (taskId: string, name: string, claimNotes: string) => {
-    if (usingSampleData) {
-      // For sample data, just update local state
-      setTasks(prev => prev.map(t => 
-        t.id === taskId 
-          ? { ...t, assigned_to: name, claim_notes: claimNotes, status: "Claimed" as const, claimed_at: new Date().toISOString() }
-          : t
-      ))
-    } else {
-      // Update via Supabase
-      const { error: updateError } = await supabase
-        .from("t221_volunteer_tasks")
-        .update({
-          assigned_to: name,
-          claim_notes: claimNotes,
-          status: "Claimed",
-          claimed_at: new Date().toISOString(),
-        })
-        .eq("id", taskId)
-
-      if (updateError) {
-        throw new Error(updateError.message)
-      }
-
-      // Re-fetch to get live state
-      await fetchTasks()
-    }
-
-    // Show success toast
-    const taskTitle = claimTask?.title || ""
-    setToastData({ name, taskTitle })
-    setToastVisible(true)
-    
-    // Close modal
-    setClaimModalOpen(false)
-    setClaimTask(null)
-  }
-
-  const handleCompleteConfirm = async (taskId: string, completedBy: string, completionNotes: string) => {
-    if (usingSampleData) {
-      setTasks(prev => prev.map(t =>
-        t.id === taskId
-          ? { ...t, completed_by: completedBy, completion_notes: completionNotes, status: "Complete" as const, completed_at: new Date().toISOString() }
-          : t
-      ))
-    } else {
-      const { error: updateError } = await supabase
-        .from("t221_volunteer_tasks")
-        .update({
-          completed_by: completedBy,
-          completion_notes: completionNotes,
-          status: "Complete",
-          completed_at: new Date().toISOString(),
-        })
-        .eq("id", taskId)
-
-      if (updateError) {
-        throw new Error(updateError.message)
-      }
-
-      await fetchTasks()
-    }
-
-    setCompleteModalOpen(false)
-    setCompleteTask(null)
-  }
-
-  // Apply filters — exclude Complete tasks from the active list
   const filteredTasks = tasks.filter(task => {
-    if (task.status === "Complete") return false
     if (filters.type !== "all" && task.type !== filters.type) return false
     if (filters.ask !== "all" && task.ask !== filters.ask) return false
     if (filters.recipient !== "all" && task.recipient !== filters.recipient) return false
@@ -174,18 +50,16 @@ export function TaskList() {
 
   return (
     <div className="space-y-4">
-      {/* Filter bar */}
       <TaskFilterBar filters={filters} onFiltersChange={setFilters} />
 
-      {/* Header with refresh */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
           {filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""}
         </p>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={fetchTasks}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRefresh}
           disabled={loading}
         >
           <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
@@ -203,28 +77,14 @@ export function TaskList() {
         <div className="flex items-center justify-center py-12">
           <Spinner className="h-8 w-8 text-[#BF0000]" />
         </div>
-      ) : error ? (
-        <Empty>
-          <EmptyTitle>Failed to load tasks</EmptyTitle>
-          <EmptyDescription>{error}</EmptyDescription>
-          <Button 
-            variant="outline" 
-            onClick={fetchTasks} 
-            className="mt-4"
-          >
-            Try Again
-          </Button>
-        </Empty>
       ) : filteredTasks.length === 0 ? (
         <Empty>
           <ClipboardList className="h-10 w-10 text-muted-foreground" />
           <EmptyTitle>No tasks found</EmptyTitle>
-          <EmptyDescription>
-            No tasks match the current filters.
-          </EmptyDescription>
-          <Button 
-            variant="outline" 
-            onClick={() => setFilters(defaultFilters)} 
+          <EmptyDescription>No tasks match the current filters.</EmptyDescription>
+          <Button
+            variant="outline"
+            onClick={() => setFilters(defaultFilters)}
             className="mt-4"
           >
             Clear Filters
@@ -238,8 +98,7 @@ export function TaskList() {
               <TaskCard
                 key={task.id}
                 task={task}
-                onClaimClick={() => handleClaimClick(task)}
-                onCompleteClick={() => handleCompleteClick(task)}
+                onClick={() => onDetailClick(task)}
               />
             ))}
           </div>
@@ -248,36 +107,11 @@ export function TaskList() {
           <div className="hidden lg:block">
             <TaskTable
               tasks={filteredTasks}
-              onClaimClick={handleClaimClick}
-              onCompleteClick={handleCompleteClick}
+              onRowClick={onDetailClick}
             />
           </div>
         </>
       )}
-
-      {/* Claim modal */}
-      <ClaimModal
-        task={claimTask}
-        open={claimModalOpen}
-        onOpenChange={setClaimModalOpen}
-        onConfirm={handleClaimConfirm}
-      />
-
-      {/* Complete modal */}
-      <CompleteModal
-        task={completeTask}
-        open={completeModalOpen}
-        onOpenChange={setCompleteModalOpen}
-        onConfirm={handleCompleteConfirm}
-      />
-
-      {/* Success toast */}
-      <ClaimToast
-        name={toastData?.name || ""}
-        taskTitle={toastData?.taskTitle || ""}
-        visible={toastVisible}
-        onClose={() => setToastVisible(false)}
-      />
     </div>
   )
 }

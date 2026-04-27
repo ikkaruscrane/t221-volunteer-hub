@@ -1,13 +1,11 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
-import { supabase, sampleTasks, type Task } from "@/lib/supabase"
+import { type Task } from "@/lib/supabase"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty"
 import { Spinner } from "@/components/ui/spinner"
-import { CheckCircle2, RefreshCw, User, CalendarDays, Clock } from "lucide-react"
+import { CheckCircle2, User, CalendarDays, Clock } from "lucide-react"
 
 function formatDate(dateString: string | null): string {
   if (!dateString) return "—"
@@ -28,68 +26,18 @@ const askBadgeStyles: Record<Task["ask"], string> = {
   "Weekend camping": "bg-rose-50 text-rose-700 border-rose-200",
 }
 
-export function CompletedList() {
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [loading, setLoading] = useState(true)
-  const [usingSampleData, setUsingSampleData] = useState(false)
+interface CompletedListProps {
+  tasks: Task[]
+  loading: boolean
+  onDetailClick: (task: Task) => void
+}
 
-  const fetchTasks = useCallback(async () => {
-    setLoading(true)
-    setUsingSampleData(false)
-
-    try {
-      const { data, error: fetchError } = await supabase
-        .from("t221_volunteer_tasks")
-        .select("*")
-        .eq("status", "Complete")
-        .order("completed_at", { ascending: false })
-
-      if (fetchError) {
-        const completed = sampleTasks.filter(t => t.status === "Complete")
-        setTasks(completed)
-        setUsingSampleData(true)
-      } else if (data) {
-        setTasks(data as Task[])
-      } else {
-        const completed = sampleTasks.filter(t => t.status === "Complete")
-        setTasks(completed)
-        setUsingSampleData(true)
-      }
-    } catch {
-      const completed = sampleTasks.filter(t => t.status === "Complete")
-      setTasks(completed)
-      setUsingSampleData(true)
-    }
-
-    setLoading(false)
-  }, [])
-
-  useEffect(() => {
-    fetchTasks()
-  }, [fetchTasks])
-
+export function CompletedList({ tasks, loading, onDetailClick }: CompletedListProps) {
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {tasks.length} completed task{tasks.length !== 1 ? "s" : ""}
-        </p>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={fetchTasks}
-          disabled={loading}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
-          Refresh
-        </Button>
-      </div>
-
-      {usingSampleData && (
-        <div className="text-xs text-muted-foreground bg-muted/50 px-3 py-2 rounded-md">
-          Showing sample data. Connect your Supabase table to see real completed tasks.
-        </div>
-      )}
+      <p className="text-sm text-muted-foreground">
+        {tasks.length} completed task{tasks.length !== 1 ? "s" : ""}
+      </p>
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
@@ -99,14 +47,16 @@ export function CompletedList() {
         <Empty>
           <CheckCircle2 className="h-10 w-10 text-muted-foreground" />
           <EmptyTitle>No completed tasks yet</EmptyTitle>
-          <EmptyDescription>
-            Tasks marked complete will be archived here.
-          </EmptyDescription>
+          <EmptyDescription>Tasks marked complete will be archived here.</EmptyDescription>
         </Empty>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {tasks.map(task => (
-            <Card key={task.id} className="opacity-90 border-green-100 bg-green-50/30">
+            <Card
+              key={task.id}
+              onClick={() => onDetailClick(task)}
+              className="opacity-90 border-green-100 bg-green-50/30 cursor-pointer hover:shadow-md transition-shadow"
+            >
               <CardHeader className="pb-2 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <h3 className="text-base font-medium text-foreground leading-tight flex-1 min-w-0">
@@ -144,13 +94,9 @@ export function CompletedList() {
                     Completed by {task.completed_by || "—"}
                   </div>
                   {task.completion_notes && (
-                    <p className="text-xs text-muted-foreground pl-5 italic">
-                      "{task.completion_notes}"
-                    </p>
+                    <p className="text-xs text-muted-foreground pl-5 italic">"{task.completion_notes}"</p>
                   )}
-                  <p className="text-xs text-muted-foreground pl-5">
-                    {formatDate(task.completed_at)}
-                  </p>
+                  <p className="text-xs text-muted-foreground pl-5">{formatDate(task.completed_at)}</p>
                 </div>
               </CardContent>
             </Card>

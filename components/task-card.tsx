@@ -2,14 +2,12 @@
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { type Task } from "@/lib/supabase"
 import { CalendarDays, User, Clock, Users } from "lucide-react"
 
 interface TaskCardProps {
   task: Task
-  onClaimClick?: () => void
-  onCompleteClick?: () => void
+  onClick?: () => void
 }
 
 function formatDate(dateString: string | null): string {
@@ -49,25 +47,24 @@ const askBadgeStyles: Record<Task["ask"], string> = {
   "Weekend camping": "bg-rose-50 text-rose-700 border-rose-200",
 }
 
-export function TaskCard({ task, onClaimClick, onCompleteClick }: TaskCardProps) {
+export function TaskCard({ task, onClick }: TaskCardProps) {
   const isClaimed = task.status === "Claimed"
-  const isComplete = task.status === "Complete"
-  const isCancelled = task.status === "Cancelled"
   const urgent = isUrgent(task.commitment_date, task.assigned_to) && task.status === "Open"
-  const canClaim = task.status === "Open" && !task.assigned_to
-  const canComplete = task.status === "Open" || task.status === "Claimed"
 
   return (
-    <Card className={`hover:shadow-md transition-shadow ${isClaimed ? "opacity-75" : ""}`}>
+    <Card
+      onClick={onClick}
+      className={`hover:shadow-md transition-shadow cursor-pointer ${isClaimed ? "opacity-75" : ""}`}
+    >
       <CardHeader className="pb-2 space-y-2">
         <div className="flex items-start justify-between gap-2">
           <div className="space-y-1 flex-1 min-w-0">
-            <h3 
+            <h3
               className={`text-base leading-tight ${
-                urgent 
-                  ? "font-bold text-[#BF0000]" 
-                  : isClaimed 
-                    ? "italic text-muted-foreground font-normal" 
+                urgent
+                  ? "font-bold text-[#BF0000]"
+                  : isClaimed
+                    ? "italic text-muted-foreground font-normal"
                     : "font-semibold text-foreground"
               }`}
             >
@@ -79,8 +76,8 @@ export function TaskCard({ task, onClaimClick, onCompleteClick }: TaskCardProps)
               </p>
             )}
           </div>
-          <Badge 
-            variant="outline" 
+          <Badge
+            variant="outline"
             className={`shrink-0 ${statusBadgeStyles[task.status]}`}
           >
             {task.status}
@@ -97,12 +94,12 @@ export function TaskCard({ task, onClaimClick, onCompleteClick }: TaskCardProps)
         </div>
       </CardHeader>
       <CardContent className="space-y-3 text-sm">
-        <div className={`grid gap-1.5 ${isClaimed ? "text-muted-foreground" : "text-muted-foreground"}`}>
+        <div className="grid gap-1.5 text-muted-foreground">
           <div className="flex items-center gap-2">
             <User className="h-3.5 w-3.5 shrink-0" />
             <span className="truncate">{task.recipient}</span>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <CalendarDays className="h-3.5 w-3.5 shrink-0" />
             <span>Commit: {formatDate(task.commitment_date)}</span>
@@ -114,27 +111,9 @@ export function TaskCard({ task, onClaimClick, onCompleteClick }: TaskCardProps)
           </div>
         </div>
 
-        <div className="flex flex-col gap-2">
-          {canClaim && onClaimClick && (
-            <Button
-              size="sm"
-              onClick={onClaimClick}
-              className="w-full min-h-[44px] bg-[#BF0000] hover:bg-[#A00000] text-white"
-            >
-              Claim This Task
-            </Button>
-          )}
-          {canComplete && onCompleteClick && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={onCompleteClick}
-              className="w-full min-h-[44px] border-green-600 text-green-700 hover:bg-green-50"
-            >
-              Mark Complete
-            </Button>
-          )}
-        </div>
+        {task.status === "Open" && !task.assigned_to && (
+          <p className="text-xs text-[#BF0000] font-medium">Tap to view & claim →</p>
+        )}
       </CardContent>
     </Card>
   )
